@@ -20,7 +20,8 @@ for items in Database:
             unique_stats[index_counter][item] += 1
         index_counter += 1
 print(unique_stats)
-
+unique_stats = [{key:val for key,val in sorted(_.items(), key=lambda item: -item[1])} for _ in unique_stats]
+print(unique_stats)
 # Теперь мы видим разные характеристики, которые соответствуют своему индексу.
 # Вместо set используем dict, чтобы считать их количество i вхождений. Occ(i,C_j)
 
@@ -29,4 +30,10 @@ S = sum([sum(_.values()) for _ in unique_stats])
 # Сейчас он выводит общее кол-во объектов в Database. Позже мы сможем узнавать S(C_j)
 # W(C) - это просто ширина кластера len(D(C))
 # H(C) - вычисляем по формуле S(C)/W(C)
-# Хмм, а как насчёт сделать визуализацию?
+# Хмм, а как насчёт сделать визуализацию? Попробую seaborn
+import seaborn as sns # pip install seaborn
+import matplotlib.pyplot as plt
+keys = list(unique_stats[1].keys())
+vals = list(unique_stats[1].values())
+sns.barplot(x=keys,y=vals)
+plt.show() 
