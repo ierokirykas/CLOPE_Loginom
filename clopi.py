@@ -48,8 +48,9 @@ class CLOPE:
         # Чё там ему надобно?
         self.clusters = {}
         self.count_iterations = 0
-        self.iterations = {}
-        self.counter = 0
+        self.transactions = {}
+        self.counttr = 0 #Счётчик транзакций
+
     # И самое основное - Profit(C,r). Который мы переделываем в DeltaAdd(C,t,r)
     # Где C - сама транзакция, t - номер кластера, r - отталкивание кластеров. В примере r = 2.6
     def deltaAdd(self,C,t,r):
@@ -64,4 +65,25 @@ class CLOPE:
             - self.clusters[t].area * self.clusters[t].counter/pow(self.clusters[t].width,r)
             # Чё-то типа такого, судя по методе.
 
-            
+    # И наконец добавляем транзакции
+    def add_transaction(self, transaction, id, r=2.6):
+        # id - номер транзакции. r - отталкивание кластеров
+        self.counttr += 1
+        max_delta = None
+        max_delta_index = None
+
+        # Проходим по каждому кластеру, смотрим, где транзакция будет эффективнее
+        for t in self.clusters:
+            delta = self.deltaAdd(transaction, t, r)
+            if (delta > 0) and (max_delta is None or delta > max_delta) :
+                max_delta = delta
+                max_delta_index = t
+        
+        self.transactions[id] = max_delta_index
+
+        self.clusters[max_delta_index].add_transaction(transaction)
+
+        return max_delta_index
+
+        
+# Задание на завтра: сделать добавление кластеров и проверить работу кода
