@@ -18,16 +18,30 @@ for exIndex in range(0, len(example)):
         if index == 0:
             mushrooms[exIndex] = [''] * len(example[exIndex])
         mushrooms[exIndex][index] = example[exIndex][index]
+        # print(mushrooms[exIndex][index])
             
 # print(mushrooms)
-CC = CLOPE()
-CC.add_cluster(mushrooms, repulsion= 3)
+clope = CLOPE()
+clope.add_cluster(mushrooms, repulsion = 1.2)
 k = 0
 while True:
     try:
-        print(CC.clusters[k].transactions)
+        print(clope.clusters[k].transactions)
         k+=1
     except KeyError:
+        print("__________")
         break
-# ИТОГО: Он разделил все транзакции на единичные кластеры. 
-# Далее нам нужно искать более оптимальные конфигурации.
+for i in range(5):
+    clope.next_step(mushrooms, repulsion= 1.2)
+
+    while True:
+        try:
+            print(clope.clusters[k].transactions, clope.clusters[k].gradient)
+            k+=1
+        except KeyError:
+            print("__________")
+            break
+
+# Происходит странная вещь при repulsion = 1.2
+# Он не может определиться, какой из 2х вариантов лучше
+# Задание на завтра: Ко всем функциям добавить нормальные комментарии

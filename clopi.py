@@ -2,7 +2,7 @@ from seaborn import barplot # pip install seaborn
 from matplotlib.pyplot import show
 
 class Cluster:
-    def __init__(self, history_count):
+    def __init__(self):
         # Чё там у него должно быть?
         # Площадь, высота, ширина. Вроде всё
         self.area = 0
@@ -13,7 +13,6 @@ class Cluster:
         self.transactions = {}
         # И количество транзакций
         self.counter = 0
-        self.history_count_transact = [0] * history_count
     def add_transaction(self, transaction):
         # Как нам их добавлять? У нас транзакции типа {'e','t','c'...}
         for item in transaction:
@@ -27,6 +26,15 @@ class Cluster:
         self.area += float(len(transaction)) # Они всё равно все одинакового размера. Но потом будем их укорачивать
         self.width = float(len(self.transactions))
         self.gradient = self.area/pow(self.width,2)
+
+    def del_transaction(self, transaction):
+        for item in transaction:
+            if self.transactions[item] == 0:
+                del self.transactions[item]
+            self.area -= float(len(transaction))
+            self.width = float(len(self.transactions))
+            self.counter -= 1
+            return self.gradient
     
     # Приводим в правильный синтаксис
     def sort_cluster(self): 
@@ -87,7 +95,7 @@ class CLOPE:
 
         if max_count_clusters is None or len(self.clusters) < max_count_clusters:
             # print(self.max_cluster_number)
-            self.clusters[self.max_cluster_number] = Cluster(self.counttr)
+            self.clusters[self.max_cluster_number] = Cluster()
             if max_delta is None or self.deltaAdd(transaction, self.max_cluster_number, r) > max_delta:
                 max_delta_index = self.max_cluster_number
                 self.max_cluster_number += 1
@@ -100,10 +108,23 @@ class CLOPE:
         return max_delta_index
 
         
-# Задание на завтра: сделать добавление кластеров и проверить работу кода
     def add_cluster(self, transactions, repulsion = 2):
         keys = sorted(transactions.keys())
         # print(transactions[keys[0]])
         for item in keys:
             self.add_transaction(transactions[item],item)
             self.count_iterations = 1
+    
+    def next_step(self, transactions, repulsion = 2, max_count_clusters = None):
+        # I like to move it, move it!
+        moves = 0
+        keys = sorted(transactions.keys())
+        for id in keys:
+            cluster_id = self.transactions[id]
+            transaction = transactions[id]
+            self.clusters[cluster_id].del_transaction(transaction)
+            moves += int(self.add_transaction(transaction,id,repulsion,max_count_clusters) != cluster_id)
+
+        self.count_iterations += 1
+
+        return moves
