@@ -2,7 +2,7 @@ from seaborn import barplot # pip install seaborn
 from matplotlib.pyplot import show
 
 class Cluster:
-    def __init__(self):
+    def __init__(self, history_count):
         # Чё там у него должно быть?
         # Площадь, высота, ширина. Вроде всё
         self.area = 0
@@ -13,11 +13,9 @@ class Cluster:
         self.transactions = {}
         # И количество транзакций
         self.counter = 0
-
+        self.history_count_transact = [0] * history_count
     def add_transaction(self, transaction):
         # Как нам их добавлять? У нас транзакции типа {'e','t','c'...}
-        # Хотя. Я вроде делал проход по транзакциям сверху... 
-        # Можно сказать, что брал базу как "один большой кластер"
         for item in transaction:
             if not(item in self.transactions):
                 # print(item)
@@ -32,7 +30,7 @@ class Cluster:
     
     # Приводим в правильный синтаксис
     def sort_cluster(self): 
-        # Честно, я подсмотрел эту сортировку в инете. Сам бы до x:y не додумался :)
+        # Честно, я подсмотрел эту сортировку в инете. Сам бы до key:val  не додумался :)
         self.transactions = {key:val for key,val in sorted(self.transactions.items(), key=lambda item: -item[1])}
 
     def visualize_cluster(self):
@@ -50,6 +48,7 @@ class CLOPE:
         self.count_iterations = 0
         self.transactions = {}
         self.counttr = 0 #Счётчик транзакций
+        self.max_cluster_number = 0 # Макс. номер кластера. Нужен для указания max_delta_index
 
     # И самое основное - Profit(C,r). Который мы переделываем в DeltaAdd(C,t,r)
     # Где C - сама транзакция, t - номер кластера, r - отталкивание кластеров. В примере r = 2.6
@@ -61,12 +60,19 @@ class CLOPE:
         for item in C:
             if not(item in self.clusters[t].transactions):
                 width_new += 1
-            results = area_new * (self.clusters[t].counter + 1)/pow(width_new,r) 
-            - self.clusters[t].area * self.clusters[t].counter/pow(self.clusters[t].width,r)
-            # Чё-то типа такого, судя по методе.
-
+            if width_new != 0:
+                results = area_new * (self.clusters[t].counter + 1)/pow(width_new,r) 
+            else:
+                results = 0
+            if self.clusters[t].width != 0:
+                results_old = self.clusters[t].area * self.clusters[t].counter/pow(self.clusters[t].width,r)
+            else:
+                results_old = 0
+            return results - results_old
+            # Вооо, другое дело
+        return results
     # И наконец добавляем транзакции
-    def add_transaction(self, transaction, id, r=2.6):
+    def add_transaction(self, transaction, id, r=2.6, max_count_clusters = None):
         # id - номер транзакции. r - отталкивание кластеров
         self.counttr += 1
         max_delta = None
@@ -75,10 +81,18 @@ class CLOPE:
         # Проходим по каждому кластеру, смотрим, где транзакция будет эффективнее
         for t in self.clusters:
             delta = self.deltaAdd(transaction, t, r)
-            if (delta > 0) and (max_delta is None or delta > max_delta) :
+            if (delta > 0 or max_count_clusters is not None) and (max_delta is None or delta > max_delta) :
                 max_delta = delta
                 max_delta_index = t
-        
+
+        if max_count_clusters is None or len(self.clusters) < max_count_clusters:
+            # print(self.max_cluster_number)
+            self.clusters[self.max_cluster_number] = Cluster(self.counttr)
+            if max_delta is None or self.deltaAdd(transaction, self.max_cluster_number, r) > max_delta:
+                max_delta_index = self.max_cluster_number
+                self.max_cluster_number += 1
+            else:
+                del self.clusters[self.max_cluster_number]
         self.transactions[id] = max_delta_index
 
         self.clusters[max_delta_index].add_transaction(transaction)
@@ -87,3 +101,9 @@ class CLOPE:
 
         
 # Задание на завтра: сделать добавление кластеров и проверить работу кода
+    def add_cluster(self, transactions, repulsion = 2):
+        keys = sorted(transactions.keys())
+        # print(transactions[keys[0]])
+        for item in keys:
+            self.add_transaction(transactions[item],item)
+            self.count_iterations = 1
