@@ -3,44 +3,46 @@ from matplotlib.pyplot import show
 
 class Cluster:
     def __init__(self):
-        # Чё там у него должно быть?
-        # Площадь, высота, ширина. Вроде всё
-        self.area = 0
+        self.area = 0 # Площадь гистограммы
         # self.height = 0 не нужен по причине того, что градиент более эффективен
         self.gradient = 0
-        self.width = 0
-        # Ну и сами элементы кластера, очевидно =|
-        self.transactions = {}
-        # И количество транзакций
-        self.counter = 0
+        self.width = 0 #Ширина кластера
+        self.transactions = {} #Структура кластера
+        self.counter = 0 # Количество транзакций
+         
+    #Перебираем все элементы гистограммы и добавляем в кластер
     def add_transaction(self, transaction):
-        # Как нам их добавлять? У нас транзакции типа {'e','t','c'...}
+        # Просматриваем каждый элемент транзакции и добавляем в столбец кластера.
+        # Если такого столбца нет - добавляем его в кластер 
         for item in transaction:
             if not(item in self.transactions):
-                # print(item)
                 self.transactions[item] = 1
             else:
                 self.transactions[item] += 1
+        # +1 транзакция
         self.counter += 1
-        # Не забываем обновлять параметры кластера
-        self.area += float(len(transaction)) # Они всё равно все одинакового размера. Но потом будем их укорачивать
+        
+        # Обновляем новую площадь и ширину кластера
+        self.area += float(len(transaction))
         self.width = float(len(self.transactions))
         self.gradient = self.area/pow(self.width,2)
 
+    # Удаляем транзакцию из кластера. Убираем поочерёдно все элементы заданной транзкации из кластера
     def del_transaction(self, transaction):
         for item in transaction:
             if self.transactions[item] == 0:
                 del self.transactions[item]
+            # Также обновляем значения кластера
             self.area -= float(len(transaction))
             self.width = float(len(self.transactions))
             self.counter -= 1
             return self.gradient
     
-    # Приводим в правильный синтаксис
+    # Сортировка кластера (чисто для visualize cluster)
     def sort_cluster(self): 
-        # Честно, я подсмотрел эту сортировку в инете. Сам бы до key:val  не додумался :)
         self.transactions = {key:val for key,val in sorted(self.transactions.items(), key=lambda item: -item[1])}
 
+    # Визуализация кластера
     def visualize_cluster(self):
         self.sort_cluster()
         keys = list(self.transactions.keys())
@@ -48,22 +50,25 @@ class Cluster:
         barplot(x=keys,y=vals)
         show()
 
-# Так. С кластерами разобрались. Теперь нужно сделать сам алгоритм.
+
 class CLOPE:
     def __init__(self):
-        # Чё там ему надобно?
-        self.clusters = {}
-        self.count_iterations = 0
-        self.transactions = {}
-        self.counttr = 0 #Счётчик транзакций
-        self.max_cluster_number = 0 # Макс. номер кластера. Нужен для указания max_delta_index
+        self.clusters = {} # Список кластеров
+        self.count_iterations = 0 # Количество пройденных итераций (steps)
+        self.transactions = {} # список добавленных транзакций с указанием кластеров
+        self.counttr = 0 # Количество транзакций
+        self.max_cluster_number = 0 # Максимальный номер кластера
 
-    # И самое основное - Profit(C,r). Который мы переделываем в DeltaAdd(C,t,r)
-    # Где C - сама транзакция, t - номер кластера, r - отталкивание кластеров. В примере r = 2.6
+    ''' 
+    Считаем изменение целевой функции при добавлении транзакции к кластеру
+    C - транзакция
+    t - номер кластера
+    r - отталкивание (repulsion)
+    '''
     def deltaAdd(self,C,t,r):
-        # Для начала нужно посчитать новую площадь
+
         area_new = self.clusters[t].area + len(C)
-        # И ещё ща будем считать новые широты (ахах)
+
         width_new = self.clusters[t].width
         for item in C:
             if not(item in self.clusters[t].transactions):
@@ -77,9 +82,18 @@ class CLOPE:
             else:
                 results_old = 0
             return results - results_old
-            # Вооо, другое дело
+
         return results
-    # И наконец добавляем транзакции
+
+    '''
+    Добавляем новую транзацию в алгоритм CLOPE
+    Задача - распределить её по кластерам так, чтобы целевая функция приняла максимальное значение
+
+    transaction - сама транзакция
+    id - её номер
+    r - repulsion (отталкивание)
+    max_count_clusters - максимальный номер кластера
+    '''
     def add_transaction(self, transaction, id, r=2.6, max_count_clusters = None):
         # id - номер транзакции. r - отталкивание кластеров
         self.counttr += 1
@@ -93,32 +107,47 @@ class CLOPE:
                 max_delta = delta
                 max_delta_index = t
 
+        # Добавляем транзакцию в новый кластер 
         if max_count_clusters is None or len(self.clusters) < max_count_clusters:
-            # print(self.max_cluster_number)
             self.clusters[self.max_cluster_number] = Cluster()
             if max_delta is None or self.deltaAdd(transaction, self.max_cluster_number, r) > max_delta:
                 max_delta_index = self.max_cluster_number
                 self.max_cluster_number += 1
             else:
                 del self.clusters[self.max_cluster_number]
+        # Запоминаем кластер с наилучшим значением
         self.transactions[id] = max_delta_index
 
+        # Добавляем транзакцию в кластер
         self.clusters[max_delta_index].add_transaction(transaction)
 
         return max_delta_index
 
-        
+    '''
+    Создание кластеров
+
+    transactions - слайс с транзакциями
+    repulsion - -//-
+    '''
     def add_cluster(self, transactions, repulsion = 2):
         keys = sorted(transactions.keys())
-        # print(transactions[keys[0]])
         for item in keys:
             self.add_transaction(transactions[item],item)
-            self.count_iterations = 1
+        self.count_iterations = 1
     
+    '''
+    Выполнение алгоритма CLOPE для следующей транзакции
+    transactions - слайс с транзакциями
+    repulsion - -//-
+    max_count_clusters - -//-
+    
+    '''
     def next_step(self, transactions, repulsion = 2, max_count_clusters = None):
-        # I like to move it, move it!
+        # Считаем кол-во перемещений транзакций
         moves = 0
+
         keys = sorted(transactions.keys())
+        # Для каждой транзакции ищем более подходящий кластер или создаём его
         for id in keys:
             cluster_id = self.transactions[id]
             transaction = transactions[id]
