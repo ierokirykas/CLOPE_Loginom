@@ -30,13 +30,20 @@ class Cluster:
     # Удаляем транзакцию из кластера. Убираем поочерёдно все элементы заданной транзкации из кластера
     def del_transaction(self, transaction):
         for item in transaction:
-            if self.transactions[item] == 0:
-                del self.transactions[item]
-            # Также обновляем значения кластера
-            self.area -= float(len(transaction))
-            self.width = float(len(self.transactions))
-            self.counter -= 1
-            return self.gradient
+            if item in self.transactions:
+                self.transactions[item] -= 1
+                if self.transactions[item] == 0:
+                    del self.transactions[item]
+        
+        # Обновляем метрики ПОСЛЕ удаления всех элементов
+        self.area -= len(transaction)
+        self.width = len(self.transactions)
+        self.counter -= 1
+        # Пересчитываем gradient
+        if self.width > 0:
+            self.gradient = self.area / (self.width ** 2)
+        else:
+            self.gradient = 0
     
     # Сортировка кластера (чисто для visualize cluster)
     def sort_cluster(self): 
@@ -68,22 +75,20 @@ class CLOPE:
     def deltaAdd(self,C,t,r):
 
         area_new = self.clusters[t].area + len(C)
-
         width_new = self.clusters[t].width
-        for item in C:
-            if not(item in self.clusters[t].transactions):
-                width_new += 1
-            if width_new != 0:
-                results = area_new * (self.clusters[t].counter + 1)/pow(width_new,r) 
-            else:
-                results = 0
-            if self.clusters[t].width != 0:
-                results_old = self.clusters[t].area * self.clusters[t].counter/pow(self.clusters[t].width,r)
-            else:
-                results_old = 0
-            return results - results_old
 
-        return results
+        for item in C:
+            if item not in self.clusters[t].transactions:
+                width_new += 1
+
+        if width_new == 0:
+            return 0 
+
+        new_value = area_new * (self.clusters[t].counter + 1) / (width_new ** r)
+        old_value = self.clusters[t].area * self.clusters[t].counter / (self.clusters[t].width ** r) if self.clusters[t].width > 0 else 0
+    
+        return new_value - old_value
+
 
     '''
     Добавляем новую транзацию в алгоритм CLOPE

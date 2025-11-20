@@ -3,15 +3,15 @@ from clopi import Cluster, CLOPE
 
 file = open("CLOPE_Loginom\\mushrooms.txt","r") #хехе, грибы
 example = [item.replace('\n', '').split(',') for item in file.readlines()]
-# print(mushroomsStart[:10])
-
+print(example[:10])
+'''
 example = [['a','b'],
-                ['a','b','c'],
-                ['a','c','d'],
-                ['d','e'],
-                ['d','e','f']
+            ['a','b','c'],
+            ['a','c','d'],
+            ['d','e'],
+            ['d','e','f']
 ]
-
+'''
 mushrooms = {}
 for exIndex in range(0, len(example)):
     for index in range(0, len(example[exIndex])):
@@ -22,7 +22,7 @@ for exIndex in range(0, len(example)):
             
 # print(mushrooms)
 clope = CLOPE()
-clope.add_cluster(mushrooms, repulsion = 1.2)
+clope.add_cluster(mushrooms, repulsion = 2.2)
 k = 0
 while True:
     try:
@@ -31,8 +31,11 @@ while True:
     except KeyError:
         print("__________")
         break
+print(k)
+k = 0
+
 for i in range(5):
-    clope.next_step(mushrooms, repulsion = 1.2)
+    clope.next_step(mushrooms, repulsion = 2.6)
 
     while True:
         try:
@@ -40,6 +43,7 @@ for i in range(5):
             k+=1
         except KeyError:
             print("__________")
+            print(k)
             break
 
 # Происходит странная вещь при repulsion = 1.2
