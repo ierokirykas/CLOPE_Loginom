@@ -1,9 +1,10 @@
 from clopi import Cluster, CLOPE
+import pandas as pd
 # Пробуем прочитать файл
 
 file = open("CLOPE_Loginom\\mushrooms.txt","r") #хехе, грибы
-example = [item.replace('\n', '').split(',') for item in file.readlines()]
-print(example[:10])
+mushroomsStart = [item.replace('\n', '').split(',') for item in file.readlines()]
+# print(mushroomsStart[:10])
 '''
 example = [['a','b'],
             ['a','b','c'],
@@ -13,39 +14,37 @@ example = [['a','b'],
 ]
 '''
 mushrooms = {}
-for exIndex in range(0, len(example)):
-    for index in range(0, len(example[exIndex])):
-        if index == 0:
-            mushrooms[exIndex] = [''] * len(example[exIndex])
-        mushrooms[exIndex][index] = example[exIndex][index]
-        # print(mushrooms[exIndex][index])
-            
-# print(mushrooms)
+miss_count = 0
+for exampleIndex in range(0, len(mushroomsStart)):
+    for index in range(0, len(mushroomsStart[exampleIndex])):
+        # Первый столбец -- признак (съедобные (e) или нет(p)). Данный столбец является целым классом. По этому столбцу
+        # проверяется качество тестирования
+        if index != 0:
+            if mushroomsStart[exampleIndex][index] != '?':
+                mushrooms[exampleIndex][index - 1] = mushroomsStart[exampleIndex][index] + str(index-1)
+            else:
+                # print('Пропущен объект. Номер транзакции:', exampleIndex, '. Номер объекта:', index)
+                miss_count += 1
+        else:
+            mushrooms[exampleIndex] = [''] * 22
+
+def get_count_clusters(clope):
+    # Выводим распределение по кластерам съедобных и несъедобных грибов
+    answ = []
+    for item in range(0, clope.max_cluster_number):
+        answ.append({'e': 0, 'p': 0})
+    for itemTransact in clope.transactions:
+        cluster = clope.transactions[itemTransact]
+        if mushroomsStart[itemTransact][0] == 'e':
+            answ[cluster]['e'] += 1
+        else:
+            answ[cluster]['p'] += 1
+
+    return pd.DataFrame(answ)
+
 clope = CLOPE()
-clope.add_cluster(mushrooms, repulsion = 2.2)
-k = 0
-while True:
-    try:
-        print(clope.clusters[k].transactions)
-        k+=1
-    except KeyError:
-        print("__________")
-        break
-print(k)
-k = 0
-
-for i in range(5):
-    clope.next_step(mushrooms, repulsion = 2.6)
-
-    while True:
-        try:
-            print(clope.clusters[k].transactions, clope.clusters[k].gradient)
-            k+=1
-        except KeyError:
-            print("__________")
-            print(k)
-            break
-
-# Происходит странная вещь при repulsion = 1.2
-# Он не может определиться, какой из 2х вариантов лучше
-# ыыыы. Я не знаю. Выведи что-ли весь список. И проверь работу визуализатора. Нужен ли он тебе вообще?
+repulsion = 2
+noiseLimit = 0
+clope.add_cluster(mushrooms, repulsion, noiseLimit)
+df = get_count_clusters(clope)
+print(df)

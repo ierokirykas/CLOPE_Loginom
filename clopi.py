@@ -30,12 +30,10 @@ class Cluster:
     # Удаляем транзакцию из кластера. Убираем поочерёдно все элементы заданной транзкации из кластера
     def del_transaction(self, transaction):
         for item in transaction:
-            if item in self.transactions:
-                self.transactions[item] -= 1
-                if self.transactions[item] == 0:
-                    del self.transactions[item]
+            if self.transactions[item] == 0:
+                del self.transactions[item]
         
-        # Обновляем метрики ПОСЛЕ удаления всех элементов
+        # Обновляем метрики после удаления всех элементов
         self.area -= len(transaction)
         self.width = len(self.transactions)
         self.counter -= 1
@@ -65,6 +63,7 @@ class CLOPE:
         self.transactions = {} # список добавленных транзакций с указанием кластеров
         self.counttr = 0 # Количество транзакций
         self.max_cluster_number = 0 # Максимальный номер кластера
+        self.noise_clusters = {} # Список номеров шумовых кластеров
 
     ''' 
     Считаем изменение целевой функции при добавлении транзакции к кластеру
@@ -88,7 +87,6 @@ class CLOPE:
         old_value = self.clusters[t].area * self.clusters[t].counter / (self.clusters[t].width ** r) if self.clusters[t].width > 0 else 0
     
         return new_value - old_value
-
 
     '''
     Добавляем новую транзацию в алгоритм CLOPE
@@ -134,10 +132,19 @@ class CLOPE:
     transactions - слайс с транзакциями
     repulsion - -//-
     '''
-    def add_cluster(self, transactions, repulsion = 2):
+    def add_cluster(self, transactions, repulsion = 2,
+            is_noise_reduction=-1, noise_median_threshold=0.75,max_count_clusters=None):
         keys = sorted(transactions.keys())
         for item in keys:
             self.add_transaction(transactions[item],item)
+
+        # Получаем порог шума
+        if is_noise_reduction < 0:
+            is_noise_reduction = self.getLimit(noise_median_threshold)
+        
+        if is_noise_reduction > 0:
+            self.delNoise(is_noise_reduction)
+
         self.count_iterations = 1
     
     '''
@@ -147,18 +154,49 @@ class CLOPE:
     max_count_clusters - -//-
     
     '''
-    def next_step(self, transactions, repulsion = 2, max_count_clusters = None):
+    def next_step(self, transactions, repulsion = 2, 
+                is_noise_reduction=-1, noise_median_threshold=0.75, max_count_clusters = None):
+        # Удаляем шумовые кластеры
+        if is_noise_reduction < 0:
+            is_noise_reduction = self.getLimit(noise_median_threshold)
+        self.delNoise(is_noise_reduction)
+
         # Считаем кол-во перемещений транзакций
         moves = 0
-
         keys = sorted(transactions.keys())
         # Для каждой транзакции ищем более подходящий кластер или создаём его
         for id in keys:
             cluster_id = self.transactions[id]
             transaction = transactions[id]
-            self.clusters[cluster_id].del_transaction(transaction)
-            moves += int(self.add_transaction(transaction,id,repulsion,max_count_clusters) != cluster_id)
+            if cluster_id in self.noise_clusters:
+                moves += 0
+            else:
+                self.clusters[cluster_id].del_transaction(transaction)
+                moves += int(self.add_transaction(transaction,id,repulsion,max_count_clusters) != cluster_id)
 
         self.count_iterations += 1
-
+        self.delNoise(is_noise_reduction)
+        
         return moves
+    
+    def delNoise(self,limit):
+        # Удаляем шумовые кластеры
+        new_clusters = {}
+        for item in self.clusters:
+            if self.clusters[item].counter > limit:
+                new_clusters[item] = self.clusters[item]
+            else:
+                self.noise_clusters[item] = True
+        self.clusters = new_clusters
+
+    def getLimit(self, percent = 0.75):
+        size_clusters = []
+        for item in self.clusters:
+            size_clusters.append(self.clusters[item].counter)
+        sorted(size_clusters)
+        cluster_median = int(len(size_clusters) * percent) + 1
+        if len(size_clusters) < 5:
+            limit = 10
+        else:
+            limit = size_clusters[cluster_median]
+        return limit
