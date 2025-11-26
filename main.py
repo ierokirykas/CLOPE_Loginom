@@ -1,10 +1,14 @@
 from clopi import Cluster, CLOPE
 import pandas as pd
+import random
 # Пробуем прочитать файл
 
 file = open("CLOPE_Loginom\\mushrooms.txt","r") #хехе, грибы
 mushroomsStart = [item.replace('\n', '').split(',') for item in file.readlines()]
 # print(mushroomsStart[:10])
+
+random.seed(42)
+random.shuffle(mushroomsStart)
 '''
 example = [['a','b'],
             ['a','b','c'],
@@ -43,7 +47,7 @@ def get_count_clusters(clope):
     return pd.DataFrame(answ)
 
 clope = CLOPE()
-repulsion = 2
+repulsion = 1
 noiseLimit = 0
 clope.add_cluster(mushrooms, repulsion, noiseLimit)
 df = get_count_clusters(clope)
