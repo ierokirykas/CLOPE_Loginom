@@ -43,17 +43,6 @@ class Cluster:
         else:
             self.gradient = 0
     
-    # Сортировка кластера (чисто для visualize cluster)
-    def sort_cluster(self): 
-        self.transactions = {key:val for key,val in sorted(self.transactions.items(), key=lambda item: -item[1])}
-
-    # Визуализация кластера
-    def visualize_cluster(self):
-        self.sort_cluster()
-        keys = list(self.transactions.keys())
-        vals = list(self.transactions.values())
-        barplot(x=keys,y=vals)
-        show()
 
 
 class CLOPE:
