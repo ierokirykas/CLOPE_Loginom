@@ -25,6 +25,8 @@ public:
 
     void AddTransaction(Cluster &C, string t);
     void RemoveTransaction(Cluster &C, string t);
+    double AddCost(Cluster C, string t);
+    double RemoveCost(Cluster C, string t);
 };
 
 #endif

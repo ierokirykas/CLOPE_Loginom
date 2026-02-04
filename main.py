@@ -3,7 +3,7 @@ import pandas as pd
 import random
 # Пробуем прочитать файл
 
-file = open("CLOPE_Loginom\\mushrooms.txt","r") #хехе, грибы
+file = open("mushrooms.txt","r")
 mushroomsStart = [item.replace('\n', '').split(',') for item in file.readlines()]
 # print(mushroomsStart[:10])
 
