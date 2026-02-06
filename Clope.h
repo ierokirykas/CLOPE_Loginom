@@ -8,21 +8,30 @@
 class Clope
 {
 private:
-    multiset<Cluster> clusters{};
-    multiset<char> transactions{};
-    set<int> noiseClusters{};
-    int N_tran{0};
-    int N_iter{0};
-    int max_cluster_number{0};
+    vector<Cluster> clusters{};
+    vector<multiset<char>> transactions{};
+    double repulsion;
+    int transactionCounter;
 
 public:
-    Clope(/* args */);
+    Clope(double r);
     ~Clope();
-    double deltaAdd(const Cluster &cluster, const multiset<char> &transaction, double r);
-    double deltaRemove(const Cluster &cluster, const multiset<char> &transaction, double r);
 
-    void addCluster(const Cluster &cluster);
-    void addTransaction(const multiset<char> &transaction);
+    void initialize(const vector<multiset<char>> &data);
+    void startClusterization();
+    void finalize();
+
+    vector<Cluster> getClusters() const { return clusters; }
+    int getClusterCount() const { return clusters.size(); }
+
+private:
+    void doFirstIteration();
+    bool iterateAllTransactions();
+    double findMaxDelta(const multiset<char> &transaction, int &bestCluster, int exceptCluster = -1);
+
+    double deltaAdd(const Cluster &cluster, const multiset<char> &transaction);
+    double deltaRemove(const Cluster &cluster, const multiset<char> &transaction);
+    double deltaNew(const multiset<char> &transaction);
 };
 
 #endif
