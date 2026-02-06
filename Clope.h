@@ -5,6 +5,7 @@
 #include <vector>
 #include <set>
 
+using namespace std;
 class Clope
 {
 private:
@@ -12,6 +13,14 @@ private:
     vector<multiset<char>> transactions{};
     double repulsion;
     int transactionCounter;
+
+    void doFirstIteration();
+    bool iterateAllTransactions();
+    double findMaxDelta(const multiset<char> &transaction, int &bestCluster, int exceptCluster = -1);
+
+    double deltaAdd(const Cluster &cluster, const multiset<char> &transaction);
+    double deltaRemove(const Cluster &cluster, const multiset<char> &transaction);
+    double deltaNew(const multiset<char> &transaction);
 
 public:
     Clope(double r);
@@ -23,15 +32,6 @@ public:
 
     vector<Cluster> getClusters() const { return clusters; }
     int getClusterCount() const { return clusters.size(); }
-
-private:
-    void doFirstIteration();
-    bool iterateAllTransactions();
-    double findMaxDelta(const multiset<char> &transaction, int &bestCluster, int exceptCluster = -1);
-
-    double deltaAdd(const Cluster &cluster, const multiset<char> &transaction);
-    double deltaRemove(const Cluster &cluster, const multiset<char> &transaction);
-    double deltaNew(const multiset<char> &transaction);
 };
 
 #endif

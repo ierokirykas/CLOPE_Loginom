@@ -3,6 +3,7 @@
 
 #include <set>
 #include <string>
+
 using namespace std;
 
 class Cluster
@@ -21,12 +22,13 @@ public:
     int getArea() const { return S; };
     int getWidth() const { return W; };
     int getCounter() const { return N; };
+    const multiset<char> &getOcc() const { return Occ; }
     bool containsItem(char item) const;
 
-    void AddTransaction(Cluster &C, string t);
-    void RemoveTransaction(Cluster &C, string t);
-    double AddCost(Cluster C, string t);
-    double RemoveCost(Cluster C, string t);
+    void AddTransaction(const string &t);
+    void RemoveTransaction(const string &t);
+    double AddCost(const string &t, double repulsion) const;
+    double RemoveCost(const string &t, double repulsion) const;
 };
 
 #endif
