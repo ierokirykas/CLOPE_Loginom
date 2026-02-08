@@ -1,34 +1,21 @@
-#ifndef CLUSTER_H
-#define CLUSTER_H
 
-#include <set>
-#include <string>
+#include <vector>
+#include <unordered_map>
+#include <cmath>
 
 using namespace std;
-
 class Cluster
 {
-private:
-    multiset<char> Occ{}; // Множество объектов кластера
-    int S{0};             // Площадь кластера
-    int W{0};             // Ширина кластера
-    int N{0};             // Кол-во вхождений (транзакций)
 
 public:
-    Cluster(); // Конструктор
-    Cluster(int S, int W, int N);
-    ~Cluster(); // Деструктор
+    unordered_map<int, int> transactions; // Hash-map для транзакций
+    int count;                            // Кол-во транкций в кластере
+    double area;                          // Площадь гистограммы (сумма всех вхождений)
+    double width;                         // Ширина (количество уникальных объектов)
 
-    int getArea() const { return S; };
-    int getWidth() const { return W; };
-    int getCounter() const { return N; };
-    const multiset<char> &getOcc() const { return Occ; }
-    bool containsItem(char item) const;
-
-    void AddTransaction(const string &t);
-    void RemoveTransaction(const string &t);
-    double AddCost(const string &t, double repulsion) const;
-    double RemoveCost(const string &t, double repulsion) const;
+    Cluster() : count(0), area(0.0), width(0.0) {}
+    void addTransaction(const vector<int> &transaction);
+    void removeTransaction(const vector<int> &transaction);
+    double gradient(double r) const;
+    double deltaAdd(const vector<int> &transaction, double r) const;
 };
-
-#endif

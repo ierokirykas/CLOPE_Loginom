@@ -1,37 +1,24 @@
-#ifndef CLOPE_H
-#define CLOPE_H
-
 #include "Cluster.h"
-#include <vector>
-#include <set>
 
-using namespace std;
-class Clope
+#include <vector>
+#include <iostream>
+
+class CLOPE
 {
 private:
-    vector<Cluster> clusters{};
-    vector<multiset<char>> transactions{};
-    double repulsion;
-    int transactionCounter;
-
-    void doFirstIteration();
-    bool iterateAllTransactions();
-    double findMaxDelta(const multiset<char> &transaction, int &bestCluster, int exceptCluster = -1);
-
-    double deltaAdd(const Cluster &cluster, const multiset<char> &transaction);
-    double deltaRemove(const Cluster &cluster, const multiset<char> &transaction);
-    double deltaNew(const multiset<char> &transaction);
+    vector<Cluster> clusters;
+    vector<int> ClusTruns; // Индекс кластера для каждой транзакции
+    double r;              // Параметр отталкивания
+    int noiseLimit;        // Порог для удаления шумовых кластеров
 
 public:
-    Clope(double r);
-    ~Clope();
+    CLOPE(double repulsion = 2.0, int noiseLimit = 5);
 
-    void initialize(const vector<multiset<char>> &data);
-    void startClusterization();
-    void finalize();
+    void initClusters(const vector<vector<int>> &transactions);
+    int nextStep(const vector<vector<int>> &transactions);
+    void removeNoiseClusters();
+    void fit(const vector<vector<int>> &transactions, int maxIterations = 100);
 
-    vector<Cluster> getClusters() const { return clusters; }
-    int getClusterCount() const { return clusters.size(); }
+    const std::vector<int> &getTransactions() const { return ClusTruns; }
+    size_t getNumClusters() const { return clusters.size(); }
 };
-
-#endif

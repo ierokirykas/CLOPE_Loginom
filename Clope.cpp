@@ -1,268 +1,141 @@
 #include "Clope.h"
-#include <cmath>
-#include <iostream>
-#include <set>
 
-using namespace std;
+CLOPE::CLOPE(double repulsion, int noiseLimit) : r(repulsion), noiseLimit(noiseLimit) {}
 
-Clope::Clope(double r) : repulsion(r), transactionCounter(0)
+// Инициализируем кластеры
+void CLOPE::initClusters(const vector<vector<int>> &transactions)
 {
-    cout << "Clope initialized with repulsion = " << r << endl;
-}
-Clope::~Clope()
-{
-    cout << "Clope destroyed" << endl;
-}
-void Clope::initialize(const vector<multiset<char>> &data)
-{
-    transactions = data;
-    transactionCounter = static_cast<int>(transactions.size());
-    clusters.clear();
-    cout << "Initialized with " << transactionCounter << " transactions" << endl;
-}
+    int numTransactions = transactions.size();
+    ClusTruns.resize(numTransactions, -1);
 
-void Clope::startClusterization()
-{
-    cout << "Starting clusterization..." << endl;
-    doFirstIteration();
-
-    int maxIterations = 10;
-    int iteration = 0;
-
-    while (iteration < maxIterations)
+    for (int i = 0; i < numTransactions; ++i)
     {
-        bool changed = iterateAllTransactions();
-        cout << "Iteration " << iteration + 1 << ": "
-             << (changed ? "changed" : "no change") << endl;
-        if (!changed)
-        {
-            break;
-        }
-        iteration++;
-    }
-
-    finalize();
-    cout << "Clusterization completed. Found " << clusters.size() << " clusters." << endl;
-}
-
-// Удаляем пустые кластеры
-void Clope::finalize()
-{
-    // Удаляем пустые кластеры
-    vector<Cluster> nonEmptyClusters;
-    for (const auto &cluster : clusters)
-    {
-        if (cluster.getCounter() > 0)
-        {
-            nonEmptyClusters.push_back(cluster);
-        }
-    }
-    clusters = nonEmptyClusters;
-}
-
-void Clope::doFirstIteration()
-{
-    if (transactions.empty())
-    {
-        return;
-    }
-
-    cout << "Performing first iteration..." << endl;
-
-    // Создаем первый кластер с первой транзакцией
-    Cluster firstCluster;
-    multiset<char> firstTrans = transactions[0];
-    string transStr(firstTrans.begin(), firstTrans.end());
-    firstCluster.AddTransaction(transStr);
-    clusters.push_back(firstCluster);
-
-    // Обрабатываем остальные транзакции
-    for (int i = 1; i < transactions.size(); i++)
-    {
+        const auto &trans = transactions[i];
+        double maxDelta = -1000000;
         int bestCluster = -1;
-        double maxDelta = findMaxDelta(transactions[i], bestCluster);
 
-        if (bestCluster == static_cast<int>(clusters.size()))
+        // Обновляем наилучшие значения
+        for (size_t c = 0; c < clusters.size(); ++c)
         {
-            // Создаем новый кластер
-            Cluster newCluster;
-            string transStr(transactions[i].begin(), transactions[i].end());
-            newCluster.AddTransaction(transStr);
+            double delta = clusters[c].deltaAdd(trans, r);
+            if (delta > maxDelta)
+            {
+                maxDelta = delta;
+                bestCluster = c;
+            }
+        }
+
+        // Проверяем новый кластер
+        Cluster newCluster;
+        double deltaNew = newCluster.deltaAdd(trans, r);
+        if (deltaNew > maxDelta)
+        {
             clusters.push_back(newCluster);
+            bestCluster = clusters.size() - 1;
         }
-        else if (bestCluster >= 0 && bestCluster < static_cast<int>(clusters.size()))
-        {
-            // Добавляем в существующий кластер
-            string transStr(transactions[i].begin(), transactions[i].end());
-            clusters[bestCluster].AddTransaction(transStr);
-        }
-    }
-}
 
-bool Clope::iterateAllTransactions()
+        // Добавляем транзакцию в выбранный кластер
+        clusters[bestCluster].addTransaction(trans);
+        ClusTruns[i] = bestCluster;
+    }
+
+    removeNoiseClusters();
+};
+
+// Следующая итерация
+int CLOPE::nextStep(const vector<vector<int>> &transactions)
 {
-    bool changed = false;
+    int moves = 0;
+    int numTransactions = transactions.size();
 
-    // Вектор для хранения текущего распределения транзакций по кластерам
-    vector<int> transactionToCluster(transactions.size(), -1);
-
-    for (int i = 0; i < transactions.size(); i++)
+    for (int i = 0; i < numTransactions; ++i)
     {
-
-        for (int j = 0; j < clusters.size(); j++)
-        {
-
-            bool allItemsFound = true;
-            for (char c : transactions[i])
-            {
-                if (!clusters[j].containsItem(c))
-                {
-                    allItemsFound = false;
-                    break;
-                }
-            }
-            if (allItemsFound)
-            {
-                transactionToCluster[i] = j;
-                break;
-            }
-        }
-    }
-    // Перераспределяем транзакции
-    for (int i = 0; i < transactions.size(); i++)
-    {
-        int currentCluster = transactionToCluster[i];
-        if (currentCluster == -1)
-        {
-            continue;
-        }
+        const auto &trans = transactions[i];
+        int currentCluster = ClusTruns[i];
 
         // Удаляем транзакцию из текущего кластера
-        string transStr(transactions[i].begin(), transactions[i].end());
-        clusters[currentCluster].RemoveTransaction(transStr);
+        clusters[currentCluster].removeTransaction(trans);
 
-        // Находим лучший кластер для транзакции
+        // Ищем лучший кластер для транзакции
+        double maxDelta = -1000000;
         int bestCluster = -1;
-        double maxDelta = findMaxDelta(transactions[i], bestCluster, currentCluster);
 
-        if (bestCluster != currentCluster && bestCluster != -1)
+        for (size_t c = 0; c < clusters.size(); ++c)
         {
-            changed = true;
-            // Добавляем в новый кластер
-            if (bestCluster == static_cast<int>(clusters.size()))
+            if (clusters[c].count == 0)
+                continue;
+            double delta = clusters[c].deltaAdd(trans, r);
+            if (delta > maxDelta)
             {
-                // Создаем новый кластер
-                Cluster newCluster;
-                newCluster.AddTransaction(transStr);
-                clusters.push_back(newCluster);
-                transactionToCluster[i] = static_cast<int>(clusters.size()) - 1;
+                maxDelta = delta;
+                bestCluster = c;
             }
-            else
-            {
-                clusters[bestCluster].AddTransaction(transStr);
-                transactionToCluster[i] = bestCluster;
-            }
+        }
+
+        // Проверяем новый кластер
+        Cluster newCluster;
+        double deltaNew = newCluster.deltaAdd(trans, r);
+        if (deltaNew > maxDelta)
+        {
+            clusters.push_back(newCluster);
+            bestCluster = clusters.size() - 1;
+        }
+
+        if (bestCluster != currentCluster)
+        {
+            moves++;
+        }
+
+        // Добавляем транзакцию в новый кластер
+        clusters[bestCluster].addTransaction(trans);
+        ClusTruns[i] = bestCluster;
+    }
+
+    removeNoiseClusters();
+    return moves;
+};
+
+// Убираем шумовые кластеры
+void CLOPE::removeNoiseClusters()
+{
+    vector<Cluster> newClusters;
+    vector<int> clusterMapping(clusters.size(), -1);
+
+    for (size_t i = 0; i < clusters.size(); ++i)
+    {
+        if (clusters[i].count > noiseLimit)
+        {
+            clusterMapping[i] = newClusters.size();
+            newClusters.push_back(clusters[i]);
+        }
+    }
+
+    // Обновляем индексы кластеров для транзакций
+    for (size_t i = 0; i < ClusTruns.size(); ++i)
+    {
+        int oldCluster = ClusTruns[i];
+        if (oldCluster >= 0 && clusterMapping[oldCluster] != -1)
+        {
+            ClusTruns[i] = clusterMapping[oldCluster];
         }
         else
         {
-            // Возвращаем в исходный кластер
-            clusters[currentCluster].AddTransaction(transStr);
+            ClusTruns[i] = -1; // Транзакция помечена как шум
         }
     }
 
-    return changed;
-}
-double Clope::findMaxDelta(const multiset<char> &transaction, int &bestCluster, int exceptCluster)
+    clusters = move(newClusters);
+};
+
+// Запуск алгоритма до сходимости
+void CLOPE::fit(const vector<vector<int>> &transactions, int maxIterations)
 {
-    double maxDelta = -1e9;
-    bestCluster = -1;
-
-    // Проверяем существующие кластеры
-    for (int i = 0; i < static_cast<int>(clusters.size()); i++)
+    initClusters(transactions);
+    for (int iter = 0; iter < maxIterations; ++iter)
     {
-        if (i == exceptCluster)
-            continue;
-
-        double delta = deltaAdd(clusters[i], transaction);
-        if (delta > maxDelta)
-        {
-            maxDelta = delta;
-            bestCluster = i;
-        }
+        int moves = nextStep(transactions);
+        cout << "Итерация " << iter + 1 << ": перемещений = " << moves << endl;
+        if (moves == 0)
+            break;
     }
-
-    // Проверяем создание нового кластера
-    double newDelta = deltaNew(transaction);
-    if (newDelta > maxDelta)
-    {
-        maxDelta = newDelta;
-        bestCluster = static_cast<int>(clusters.size());
-    }
-
-    return maxDelta;
-}
-
-double Clope::deltaAdd(const Cluster &cluster, const multiset<char> &transaction)
-{
-    if (cluster.getCounter() == 0)
-    {
-        return deltaNew(transaction);
-    }
-
-    // Вычисляем новую ширину
-    int newW = cluster.getWidth();
-
-    // Проверяем, какие элементы уже есть в кластере
-    const multiset<char> &clusterOcc = cluster.getOcc();
-    for (char c : transaction)
-    {
-        if (clusterOcc.find(c) == clusterOcc.end())
-        {
-            newW++;
-        }
-    }
-
-    if (newW == 0)
-        return 0;
-
-    double newValue = (cluster.getArea() + static_cast<int>(transaction.size())) *
-                      (cluster.getCounter() + 1) / pow(newW, repulsion);
-    double oldValue = cluster.getArea() * cluster.getCounter() / pow(cluster.getWidth(), repulsion);
-
-    return newValue - oldValue;
-}
-
-double Clope::deltaRemove(const Cluster &cluster, const multiset<char> &transaction)
-{
-    if (cluster.getCounter() <= 1)
-    {
-        return -cluster.getArea() * cluster.getCounter() / pow(cluster.getWidth(), repulsion);
-    }
-
-    // Упрощенный расчет
-    int newW = cluster.getWidth();
-
-    if (newW == 0)
-        return 0;
-
-    double newValue = (cluster.getArea() - static_cast<int>(transaction.size())) *
-                      (cluster.getCounter() - 1) / pow(newW, repulsion);
-    double oldValue = cluster.getArea() * cluster.getCounter() / pow(cluster.getWidth(), repulsion);
-
-    return newValue - oldValue;
-}
-
-double Clope::deltaNew(const multiset<char> &transaction)
-{
-    int S_new = static_cast<int>(transaction.size());
-    int N_new = 1;
-
-    // Уникальные элементы в транзакции
-    set<char> uniqueItems(transaction.begin(), transaction.end());
-    int W_new = static_cast<int>(uniqueItems.size());
-
-    if (W_new == 0)
-        return 0;
-
-    return S_new * N_new / pow(W_new, repulsion);
-}
+};

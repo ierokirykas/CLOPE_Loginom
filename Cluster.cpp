@@ -1,103 +1,68 @@
 #include "Cluster.h"
-#include <algorithm>
-#include <cmath>
 
-using namespace std;
-
-Cluster::Cluster() = default;
-
-Cluster::Cluster(int S, int W, int N) : S(S), W(W), N(N) {}
-
-Cluster::~Cluster() = default;
-
-bool Cluster::containsItem(char item) const
+// Добавляем транзакцию в кластер
+void Cluster::addTransaction(const vector<int> &transaction)
 {
-    return Occ.find(item) != Occ.end();
-}
-
-// Добавляем элементы транзакции в множество
-void Cluster::AddTransaction(const string &t)
-{
-
-    for (char c : t)
+    for (int item : transaction)
     {
-        Occ.insert(c);
-    }
-
-    S += static_cast<int>(t.length());
-    N += 1;
-    W = static_cast<int>(Occ.size());
-}
-
-// Удаляем элементы
-void Cluster::RemoveTransaction(const string &t)
-{
-
-    for (char c : t)
-    {
-        auto it = Occ.find(c);
-        if (it != Occ.end())
+        if (transactions.find(item) == transactions.end())
         {
-            Occ.erase(it);
+            transactions[item] = 1;
+            width += 1.0;
+        }
+        else
+        {
+            transactions[item] += 1;
+        }
+        area += 1.0;
+    }
+    count++;
+}
+
+// Удаляем транзакцию из кластера
+void Cluster::removeTransaction(const vector<int> &transaction)
+{
+    for (int item : transaction)
+    {
+        auto it = transactions.find(item);
+        if (it != transactions.end())
+        {
+            it->second -= 1;
+            area -= 1.0;
+            if (it->second == 0)
+            {
+                transactions.erase(it);
+                width -= 1.0;
+            }
         }
     }
-
-    // Обновляем метрики
-    S -= static_cast<int>(t.length());
-    N -= 1;
-    if (Occ.empty())
-    {
-        W = 0;
-    }
-    else
-    {
-        W = static_cast<int>(Occ.size());
-    }
+    count--;
 }
 
-// Вычисляем новое значение при добавление транзакции
-double Cluster::AddCost(const string &t, double repulsion) const
+// Высчитываем целевую функцию кластера
+double Cluster::gradient(double r) const
 {
-    if (W == 0)
-    {
-        // Пустой кластер
-        return static_cast<double>(t.length()) / pow(static_cast<double>(t.length()), repulsion);
-    }
+    if (width == 0.0)
+        return 0.0;
+    return (area * count) / std::pow(width, r);
+}
 
-    // Вычисляем новую ширину
-    int newW = W;
-    for (char c : t)
+// Вычисляем изменение градиента
+double Cluster::deltaAdd(const vector<int> &transaction, double r) const
+{
+    double newArea = area + transaction.size();
+    double newWidth = width;
+    for (int item : transaction)
     {
-        if (Occ.find(c) == Occ.end())
+        if (transactions.find(item) == transactions.end())
         {
-            newW++;
+            newWidth += 1.0;
         }
     }
+    if (newWidth < 1e-9)
+        return -1e9; // Очень маленькое значение вместо 0
 
-    if (newW == 0)
-        return 0;
-
-    double newValue = (S + static_cast<int>(t.length())) * (N + 1) / pow(newW, repulsion);
-    double oldValue = S * N / pow(W, repulsion);
-
-    return newValue - oldValue;
-}
-
-// То же при удалении
-double Cluster::RemoveCost(const string &t, double repulsion) const
-{
-
-    if (N <= 1)
-    {
-        return -S * N / pow(W, repulsion);
-    }
-
-    int newW = W;
-    if (newW == 0)
-        return 0;
-
-    double newValue = (S - static_cast<int>(t.length())) * (N - 1) / pow(newW, repulsion);
-    double oldValue = S * N / pow(W, repulsion);
-
-    return newValue - oldValue;
+    double newGradient = (newArea * (count + 1)) / std::pow(newWidth, r);
+    double oldGradient = (width == 0.0) ? 0.0 : (area * count) / std::pow(width, r);
+    return newGradient - oldGradient;
 }
