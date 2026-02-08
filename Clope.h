@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <iostream>
-
+#include <limits>
 class CLOPE
 {
 private:
@@ -21,4 +21,6 @@ public:
 
     const std::vector<int> &getTransactions() const { return ClusTruns; }
     size_t getNumClusters() const { return clusters.size(); }
+
+    void printClustersInfo() const;
 };

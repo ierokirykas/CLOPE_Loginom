@@ -18,4 +18,8 @@ public:
     void removeTransaction(const vector<int> &transaction);
     double gradient(double r) const;
     double deltaAdd(const vector<int> &transaction, double r) const;
+    int getCount() const { return count; }
+    double getArea() const { return area; }
+    double getWidth() const { return width; }
+    bool isEmpty() const { return count == 0; }
 };
