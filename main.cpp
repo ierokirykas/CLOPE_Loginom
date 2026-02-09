@@ -1,55 +1,65 @@
 #include "Clope.h"
 #include "loadMushrooms.h"
+#include "qualityCheck.h"
 #include <iostream>
+#include <chrono>
 
 int main(int argc, char **argv)
 {
+
+    auto startTime = chrono::high_resolution_clock::now();
     // 1. Загрузка данных
     DataLoader loader;
-    std::vector<char> labels;
+    vector<char> labels;
 
-    std::string filename = "mushrooms.txt";
-    std::cout << "Загрузка данных из файла: " << filename << std::endl;
+    string filename = "mushrooms.txt";
 
     // Загружаем данные, удаляя строки с пропущенными значениями
-    std::vector<std::vector<int>> transactions =
+    vector<vector<int>> transactions =
         loader.loadMushroomData(filename, labels, true);
 
     if (transactions.empty())
     {
-        std::cerr << "Не удалось загрузить данные или файл пуст." << std::endl;
+        cerr << "Не удалось загрузить данные или файл пуст." << endl;
         return 1;
     }
 
-    std::cout << "Запуск алгоритма CLOPE..." << std::endl;
-    std::cout << "Количество транзакций: " << transactions.size() << std::endl;
+    cout << "Запуск алгоритма CLOPE..." << endl;
+    cout << "Количество транзакций: " << transactions.size() << endl;
 
     // Параметры можно менять для экспериментов:
     double repulsion = atoi(argv[1]); // Параметр отталкивания (чем больше, тем больше кластеров)
-    int noiseLimit = 5;               // Минимальный размер кластера (меньше = шум)
-    int maxIterations = 20;           // Максимальное количество итераций
+    int noiseLimit = 2;               // Минимальный размер кластера (меньше = шум)
+    int maxIterations = 10;           // Максимальное количество итераций
 
     CLOPE clope(repulsion, noiseLimit);
     clope.fit(transactions, maxIterations);
 
     // Выводим результаты
-    std::cout << "\n=== Результаты кластеризации ===" << std::endl;
+    cout << "\n=== Результаты кластеризации ===" << endl;
     for (size_t i = 0; i < labels.size(); ++i)
     {
-        if (i % 100 == 0)
+        if (i % 1000 == 0)
         {
-            std::cout << "Транзакция " << i << " [" << transactions[i].size() << " элементов] -> ";
+            cout << "Транзакция " << i << " [" << transactions[i].size() << " элементов] -> ";
             if (labels[i] == -1)
-                std::cout << "Шум" << std::endl;
+                cout << "Шум" << endl;
             else
-                std::cout << "Кластер " << labels[i] << std::endl;
+                cout << "Кластер " << labels[i] << endl;
         }
     }
 
-    std::cout << "\nВсего кластеров: " << clope.getNumClusters() << std::endl;
+    // 4. Получение результатов
+    vector<int> clusterAssignments = clope.getTransactions();
+    auto endTime = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration<double>(endTime - startTime);
+    cout << "\n=== РЕЗУЛЬТАТЫ ===" << endl;
+    cout << "Время выполнения: " << fixed << setprecision(3)
+         << duration.count() << " секунд" << endl;
+    cout << "Кластеров получено: " << clope.getNumClusters() << endl;
 
-    // Дополнительная информация о кластерах
-    clope.printClustersInfo();
+    // 5. Оценка качества
+    Evaluator::evaluate(clusterAssignments, labels);
 
     return 0;
 }

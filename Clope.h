@@ -8,7 +8,7 @@ class CLOPE
 private:
     vector<Cluster> clusters;
     vector<int> ClusTruns; // Индекс кластера для каждой транзакции
-    double r;              // Параметр отталкивания
+    double r;              // Параметр отталкивания (repulsion)
     int noiseLimit;        // Порог для удаления шумовых кластеров
 
 public:
@@ -19,8 +19,8 @@ public:
     void removeNoiseClusters();
     void fit(const vector<vector<int>> &transactions, int maxIterations = 100);
 
-    const std::vector<int> &getTransactions() const { return ClusTruns; }
+    const vector<int> &getTransactions() const { return ClusTruns; }
     size_t getNumClusters() const { return clusters.size(); }
 
-    void printClustersInfo() const;
+    // void printClustersInfo() const;
 };

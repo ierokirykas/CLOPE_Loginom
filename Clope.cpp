@@ -7,6 +7,7 @@ CLOPE::CLOPE(double repulsion, int noiseLimit) : r(repulsion), noiseLimit(noiseL
 // Инициализируем кластеры
 void CLOPE::initClusters(const vector<vector<int>> &transactions)
 {
+    // Использую static_cast, потому что компилятор жалуется на доступ к параметрам.
     int numTransactions = static_cast<int>(transactions.size());
     ClusTruns.resize(numTransactions, -1);
     clusters.clear();
@@ -175,28 +176,28 @@ void CLOPE::fit(const vector<vector<int>> &transactions, int maxIterations)
         return;
 
     initClusters(transactions);
-    std::cout << "Инициализация завершена. Кластеров: " << clusters.size() << std::endl;
+    cout << "Инициализация завершена. Кластеров: " << clusters.size() << endl;
 
     for (int iter = 0; iter < maxIterations; ++iter)
     {
         int moves = nextStep(transactions);
-        std::cout << "Итерация " << iter + 1 << ": перемещений = " << moves
-                  << ", кластеров = " << clusters.size() << std::endl;
+        cout << "Итерация " << iter + 1 << ": перемещений = " << moves
+             << ", кластеров = " << clusters.size() << endl;
         if (moves == 0)
         {
-            std::cout << "Алгоритм сошелся." << std::endl;
+            cout << "Алгоритм сошелся." << endl; // Ура
             break;
         }
     }
 };
 
-void CLOPE::printClustersInfo() const
-{
-    std::cout << "\n=== Информация о кластерах ===" << std::endl;
-    for (size_t i = 0; i < clusters.size(); ++i)
-    {
-        std::cout << "Кластер " << i << ": транзакций = " << clusters[i].getCount()
-                  << ", площадь = " << clusters[i].getArea()
-                  << ", ширина = " << clusters[i].getWidth() << std::endl;
-    }
-}
+// void CLOPE::printClustersInfo() const
+// {
+//     cout << "\n=== Информация о кластерах ===" << endl;
+//     for (size_t i = 0; i < clusters.size(); ++i)
+//     {
+//         cout << "Кластер " << i << ": транзакций = " << clusters[i].getCount()
+//                   << ", площадь = " << clusters[i].getArea()
+//                   << ", ширина = " << clusters[i].getWidth() << endl;
+//     }
+// }

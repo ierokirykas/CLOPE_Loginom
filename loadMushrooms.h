@@ -6,33 +6,29 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+using namespace std;
 
 class DataLoader
 {
 private:
-    std::unordered_map<std::string, int> featureToId;
-    std::unordered_map<int, std::string> idToFeature;
+    unordered_map<string, int> featureToId;
+    unordered_map<int, string> idToFeature;
     int nextId = 1;
 
 public:
     DataLoader() = default;
 
-    // Загрузить данные из файла
-    std::vector<std::vector<int>> loadMushrooms(const std::string &filename,
-                                                std::vector<char> &labels);
+    vector<vector<int>> loadMushrooms(const string &filename,
+                                      vector<char> &labels);
 
-    // Преобразовать признак в ID
-    int getFeatureId(const std::string &feature);
+    vector<vector<int>> loadMushroomData(const string &filename,
+                                         vector<char> &labels,
+                                         bool removeMissing = true);
 
-    // Получить исходное значение по ID
-    std::string getFeatureValue(int id) const;
+    int getFeatureId(const string &feature);
 
-    // Загрузить данные для грибов (без первого признака)
-    std::vector<std::vector<int>> loadMushroomData(const std::string &filename,
-                                                   std::vector<char> &labels,
-                                                   bool removeMissing = true);
+    string getFeatureValue(int id) const;
 
 private:
-    // Утилита: разделить строку по разделителю
-    std::vector<std::string> split(const std::string &str, char delimiter);
+    vector<string> split(const string &str, char delimiter);
 };

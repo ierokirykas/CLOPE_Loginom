@@ -1,25 +1,26 @@
 #include "loadMushrooms.h"
 
-std::vector<std::vector<int>> DataLoader::loadMushrooms(const std::string &filename,
-                                                        std::vector<char> &labels)
+// Загрузить данные из файла
+vector<vector<int>> DataLoader::loadMushrooms(const string &filename,
+                                              vector<char> &labels)
 {
-    std::vector<std::vector<int>> transactions;
+    vector<vector<int>> transactions;
     labels.clear();
     featureToId.clear();
     idToFeature.clear();
     nextId = 1;
 
-    std::ifstream file(filename);
+    ifstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "Ошибка: не могу открыть файл " << filename << std::endl;
+        cerr << "Ошибка: не могу открыть файл " << filename << endl;
         return transactions;
     }
 
-    std::string line;
+    string line;
     int lineNumber = 0;
 
-    while (std::getline(file, line))
+    while (getline(file, line))
     {
         lineNumber++;
 
@@ -28,13 +29,13 @@ std::vector<std::vector<int>> DataLoader::loadMushrooms(const std::string &filen
             continue;
 
         // Разделяем строку по запятым
-        std::vector<std::string> tokens = split(line, ',');
+        vector<string> tokens = split(line, ',');
 
         if (tokens.size() != 23)
         {
-            std::cerr << "Предупреждение: строка " << lineNumber
-                      << " имеет " << tokens.size()
-                      << " колонок вместо 23" << std::endl;
+            cerr << "Предупреждение: строка " << lineNumber
+                 << " имеет " << tokens.size()
+                 << " колонок вместо 23" << endl;
             continue;
         }
 
@@ -43,18 +44,18 @@ std::vector<std::vector<int>> DataLoader::loadMushrooms(const std::string &filen
         labels.push_back(label);
 
         // Остальные признаки (22 признака)
-        std::vector<int> transaction;
+        vector<int> transaction;
 
         for (size_t i = 1; i < tokens.size(); i++)
         {
-            std::string feature = tokens[i];
+            string feature = tokens[i];
 
             // Пропускаем пропущенные значения (обозначены '?')
             if (feature == "?")
                 continue;
 
             // Добавляем номер признака для уникальности
-            std::string uniqueFeature = feature + std::to_string(i);
+            string uniqueFeature = feature + to_string(i);
             int featureId = getFeatureId(uniqueFeature);
             transaction.push_back(featureId);
         }
@@ -66,34 +67,35 @@ std::vector<std::vector<int>> DataLoader::loadMushrooms(const std::string &filen
         }
     }
 
-    std::cout << "Загружено " << transactions.size() << " транзакций" << std::endl;
-    std::cout << "Уникальных признаков: " << featureToId.size() << std::endl;
+    cout << "Загружено " << transactions.size() << " транзакций" << endl;
+    cout << "Уникальных признаков: " << featureToId.size() << endl;
 
     return transactions;
 }
 
-std::vector<std::vector<int>> DataLoader::loadMushroomData(const std::string &filename,
-                                                           std::vector<char> &labels,
-                                                           bool removeMissing)
+// Загрузить данные для грибов (без первого признака)
+vector<vector<int>> DataLoader::loadMushroomData(const string &filename,
+                                                 vector<char> &labels,
+                                                 bool removeMissing)
 {
-    std::vector<std::vector<int>> transactions;
+    vector<vector<int>> transactions;
     labels.clear();
     featureToId.clear();
     idToFeature.clear();
     nextId = 1;
 
-    std::ifstream file(filename);
+    ifstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "Ошибка: не могу открыть файл " << filename << std::endl;
+        cerr << "Ошибка: не могу открыть файл " << filename << endl;
         return transactions;
     }
 
-    std::string line;
+    string line;
     int lineNumber = 0;
     int skippedLines = 0;
 
-    while (std::getline(file, line))
+    while (getline(file, line))
     {
         lineNumber++;
 
@@ -102,13 +104,13 @@ std::vector<std::vector<int>> DataLoader::loadMushroomData(const std::string &fi
             continue;
 
         // Разделяем строку по запятым
-        std::vector<std::string> tokens = split(line, ',');
+        vector<string> tokens = split(line, ',');
 
         if (tokens.size() != 23)
         {
-            std::cerr << "Предупреждение: строка " << lineNumber
-                      << " имеет " << tokens.size()
-                      << " колонок вместо 23" << std::endl;
+            cerr << "Предупреждение: строка " << lineNumber
+                 << " имеет " << tokens.size()
+                 << " колонок вместо 23" << endl;
             skippedLines++;
             continue;
         }
@@ -117,12 +119,12 @@ std::vector<std::vector<int>> DataLoader::loadMushroomData(const std::string &fi
         char label = tokens[0][0];
 
         // Остальные признаки (22 признака)
-        std::vector<int> transaction;
+        vector<int> transaction;
         bool hasMissing = false;
 
         for (size_t i = 1; i < tokens.size(); i++)
         {
-            std::string feature = tokens[i];
+            string feature = tokens[i];
 
             // Проверяем пропущенные значения
             if (feature == "?")
@@ -139,7 +141,7 @@ std::vector<std::vector<int>> DataLoader::loadMushroomData(const std::string &fi
             }
 
             // Добавляем номер признака для уникальности
-            std::string uniqueFeature = feature + std::to_string(i);
+            string uniqueFeature = feature + to_string(i);
             int featureId = getFeatureId(uniqueFeature);
             transaction.push_back(featureId);
         }
@@ -156,9 +158,9 @@ std::vector<std::vector<int>> DataLoader::loadMushroomData(const std::string &fi
         }
     }
 
-    std::cout << "Загружено " << transactions.size() << " транзакций" << std::endl;
-    std::cout << "Пропущено " << skippedLines << " строк с пропущенными значениями" << std::endl;
-    std::cout << "Уникальных признаков: " << featureToId.size() << std::endl;
+    cout << "Загружено " << transactions.size() << " транзакций" << endl;
+    cout << "Пропущено " << skippedLines << " строк с пропущенными значениями" << endl;
+    cout << "Уникальных признаков: " << featureToId.size() << endl;
 
     // Статистика по меткам
     int edibleCount = 0, poisonousCount = 0;
@@ -169,13 +171,14 @@ std::vector<std::vector<int>> DataLoader::loadMushroomData(const std::string &fi
         else if (label == 'p')
             poisonousCount++;
     }
-    std::cout << "Съедобных (e): " << edibleCount << std::endl;
-    std::cout << "Ядовитых (p): " << poisonousCount << std::endl;
+    cout << "Съедобных (e): " << edibleCount << endl;
+    cout << "Ядовитых (p): " << poisonousCount << endl;
 
     return transactions;
 }
 
-int DataLoader::getFeatureId(const std::string &feature)
+// Преобразовать признак в ID
+int DataLoader::getFeatureId(const string &feature)
 {
     auto it = featureToId.find(feature);
     if (it != featureToId.end())
@@ -190,7 +193,8 @@ int DataLoader::getFeatureId(const std::string &feature)
     return newId;
 }
 
-std::string DataLoader::getFeatureValue(int id) const
+// Получить исходное значение по ID
+string DataLoader::getFeatureValue(int id) const
 {
     auto it = idToFeature.find(id);
     if (it != idToFeature.end())
@@ -200,13 +204,14 @@ std::string DataLoader::getFeatureValue(int id) const
     return "UNKNOWN";
 }
 
-std::vector<std::string> DataLoader::split(const std::string &str, char delimiter)
+// Разделить строку по разделителю
+vector<string> DataLoader::split(const string &str, char delimiter)
 {
-    std::vector<std::string> tokens;
-    std::stringstream ss(str);
-    std::string token;
+    vector<string> tokens;
+    stringstream ss(str);
+    string token;
 
-    while (std::getline(ss, token, delimiter))
+    while (getline(ss, token, delimiter))
     {
         tokens.push_back(token);
     }
